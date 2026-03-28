@@ -7,6 +7,14 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <!-- Full-page drop overlay (hidden by default, shown on drag) -->
+  <div id="drop-overlay" class="drop-overlay hidden">
+    <div class="drop-overlay-inner">
+      <h2>Drop COLMAP files here</h2>
+      <p>cameras.bin, images.bin, points3D.bin</p>
+    </div>
+  </div>
+
   <div id="sidebar">
     <div id="sidebar-header">
       <h1><span>Pose</span>Forge</h1>
@@ -50,7 +58,10 @@
       <div class="drop-box">
         <h2>COLMAP Sparse Reconstruction</h2>
         <p>Drop a folder containing<br><strong>cameras.bin</strong>, <strong>images.bin</strong>, <strong>points3D.bin</strong></p>
-        <button class="btn" id="open-folder-btn">Choose Folder</button>
+        <div class="btn-row">
+          <button class="btn" id="open-folder-btn">Choose Folder</button>
+          <button class="btn" id="open-files-btn">Choose Files</button>
+        </div>
         <input type="file" id="folder-input" webkitdirectory multiple style="display:none">
         <input type="file" id="file-input" multiple accept=".bin" style="display:none">
       </div>
