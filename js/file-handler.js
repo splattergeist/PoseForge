@@ -110,29 +110,27 @@ export function setupFileDrop({ onDrop, onError, setStatus }) {
   const overlay = document.getElementById('drop-overlay');
   let dragCounter = 0;
 
+  // Prevent default browser behavior for all drag events on the document
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
+    document.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); }, false);
+  });
+
   document.addEventListener('dragenter', e => {
-    e.preventDefault();
     dragCounter++;
-    overlay.classList.remove('hidden');
+    if (overlay) overlay.classList.remove('hidden');
   });
 
   document.addEventListener('dragleave', e => {
-    e.preventDefault();
     dragCounter--;
     if (dragCounter <= 0) {
       dragCounter = 0;
-      overlay.classList.add('hidden');
+      if (overlay) overlay.classList.add('hidden');
     }
   });
 
-  document.addEventListener('dragover', e => {
-    e.preventDefault();
-  });
-
   document.addEventListener('drop', async e => {
-    e.preventDefault();
     dragCounter = 0;
-    overlay.classList.add('hidden');
+    if (overlay) overlay.classList.add('hidden');
 
     const files = await extractColmapFiles(e.dataTransfer);
     if (hasAllFiles(files)) {

@@ -135,5 +135,6 @@ async function readColmapBinaryFile(file) {
   return new ColmapReader(buffer);
 }
 
+export { ColmapReader, readColmapBinaryFile };
 window.ColmapReader = ColmapReader;
 window.readColmapBinaryFile = readColmapBinaryFile;
