@@ -5,8 +5,9 @@
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { buildPointCloud, buildCameraFrustums } from './frustum-builder.js';
+import { buildCameraFrustums } from './frustum-builder.js';
 import { buildTrajectory } from './trajectory-builder.js';
+import { computePointColors } from './point-coloring.js';
 
 class PoseForgeViewer {
   constructor(container) {
@@ -14,12 +15,18 @@ class PoseForgeViewer {
     this.cameras = {};
     this.images = {};
     this.points = {};
+    this.pointArray = [];
     this.cameraMeshes = [];
     this.pointCloud = null;
     this.frustumGroup = new THREE.Group();
     this.pointGroup = new THREE.Group();
     this.trajectoryGroup = new THREE.Group();
+    this.gridHelper = null;
+    this.gridVisible = true;
+    this.autoRotating = false;
     this.onCameraClick = null;
+    this._currentColorMode = 'rgb';
+    this._currentPointSize = 0.02;
 
     this.init();
   }
@@ -40,8 +47,11 @@ class PoseForgeViewer {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.1;
+    this.controls.autoRotate = false;
+    this.controls.autoRotateSpeed = 1.5;
 
-    this.scene.add(new THREE.GridHelper(100, 50, 0x222222, 0x111111));
+    this.gridHelper = new THREE.GridHelper(100, 50, 0x222222, 0x111111);
+    this.scene.add(this.gridHelper);
     this.scene.add(this.frustumGroup);
     this.scene.add(this.pointGroup);
     this.scene.add(this.trajectoryGroup);
@@ -84,7 +94,6 @@ class PoseForgeViewer {
     }
   }
 
-  /** Convert COLMAP quaternion {w,x,y,z} to THREE.Quaternion. */
   quaternionFromColmap(q) {
     return new THREE.Quaternion(q.x, q.y, q.z, q.w);
   }
@@ -94,21 +103,55 @@ class PoseForgeViewer {
     this.cameras = cameras;
     this.images = images;
     this.points = points;
+    this.pointArray = Object.values(points);
     this.clearScene();
 
-    const pc = buildPointCloud(points);
-    if (pc) { this.pointCloud = pc; this.pointGroup.add(pc); }
-
-    const { group, hitboxes } = buildCameraFrustums(cameras, images, this.quaternionFromColmap.bind(this));
-    this.frustumGroup.add(group);
-    this.cameraMeshes.forEach(m => this.scene.remove(m));
-    this.cameraMeshes = hitboxes;
-    hitboxes.forEach(m => this.scene.add(m));
+    this._buildPointCloud(this.pointArray, this._currentColorMode);
+    this._buildCameraFrustums('frustum');
 
     const traj = buildTrajectory(images, this.quaternionFromColmap.bind(this));
     if (traj) this.trajectoryGroup.add(traj);
 
     this.fitView();
+  }
+
+  _buildPointCloud(pointArray, colorMode) {
+    this.pointGroup.clear();
+    this.pointCloud = null;
+    if (pointArray.length === 0) return;
+
+    const positions = new Float32Array(pointArray.length * 3);
+    const colorArr = computePointColors(pointArray, colorMode);
+
+    pointArray.forEach((p, i) => {
+      positions[i * 3] = p.x;
+      positions[i * 3 + 1] = p.y;
+      positions[i * 3 + 2] = p.z;
+    });
+
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geom.setAttribute('color', new THREE.BufferAttribute(colorArr, 3));
+
+    const mat = new THREE.PointsMaterial({
+      size: this._currentPointSize, vertexColors: true, sizeAttenuation: true,
+    });
+    this.pointCloud = new THREE.Points(geom, mat);
+    this.pointGroup.add(this.pointCloud);
+  }
+
+  _buildCameraFrustums(mode) {
+    this.frustumGroup.clear();
+    this.cameraMeshes.forEach(m => this.scene.remove(m));
+    this.cameraMeshes = [];
+    if (Object.keys(this.images).length === 0) return;
+
+    const { group, hitboxes } = buildCameraFrustums(
+      this.cameras, this.images, this.quaternionFromColmap.bind(this), mode
+    );
+    this.frustumGroup.add(group);
+    this.cameraMeshes = hitboxes;
+    hitboxes.forEach(m => this.scene.add(m));
   }
 
   clearScene() {
@@ -157,7 +200,47 @@ class PoseForgeViewer {
   togglePoints(v)   { this.pointGroup.visible = v; }
   toggleCameras(v)  { this.frustumGroup.visible = v; this.cameraMeshes.forEach(m => m.visible = v); }
   toggleTrajectory(v) { this.trajectoryGroup.visible = v; }
-  setPointSize(s)   { if (this.pointCloud) this.pointCloud.material.size = s; }
+  setPointSize(s)   { this._currentPointSize = s; if (this.pointCloud) this.pointCloud.material.size = s; }
+  setPointOpacity(o) { if (this.pointCloud) this.pointCloud.material.opacity = o; this.pointCloud.material.transparent = o < 1; }
+
+  toggleGrid() {
+    this.gridVisible = !this.gridVisible;
+    this.gridHelper.visible = this.gridVisible;
+  }
+
+  toggleAutoRotate() {
+    this.autoRotating = !this.autoRotating;
+    this.controls.autoRotate = this.autoRotating;
+  }
+
+  setAxisView(direction) {
+    const box = new THREE.Box3();
+    this.pointGroup.traverse(c => { if (c.isPoints) box.expandByObject(c); });
+    this.frustumGroup.traverse(c => { if (c.isMesh) box.expandByObject(c); });
+    if (box.isEmpty()) return;
+
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const dist = Math.max(size.x, size.y, size.z) * 1.2;
+
+    const dirs = {
+      front: [dist, 0, 0], back: [-dist, 0, 0],
+      left: [0, 0, dist], right: [0, 0, -dist],
+      top: [0, dist, 0], bottom: [0, -dist, 0],
+    };
+    const d = dirs[direction] || dirs.front;
+    this.camera.position.set(center.x + d[0], center.y + d[1], center.z + d[2]);
+    this.controls.target.copy(center);
+    this.controls.update();
+  }
+
+  applyFiltersAndColors(filteredPoints, colorMode, cameraMode) {
+    this._currentColorMode = colorMode;
+    this._buildPointCloud(filteredPoints, colorMode);
+    if (this.pointCloud) this.pointCloud.material.size = this._currentPointSize;
+    this._buildCameraFrustums(cameraMode);
+  }
 }
 
 window.PoseForgeViewer = PoseForgeViewer;
+export { PoseForgeViewer };

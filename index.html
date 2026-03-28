@@ -11,7 +11,7 @@
   <div id="drop-overlay" class="drop-overlay hidden">
     <div class="drop-overlay-inner">
       <h2>Drop COLMAP files here</h2>
-      <p>cameras.bin, images.bin, points3D.bin</p>
+      <p>cameras.bin/txt, images.bin/txt, points3D.bin/txt</p>
     </div>
   </div>
 
@@ -40,7 +40,39 @@
           <label>Point Size</label>
           <input type="range" id="point-size" min="0.001" max="0.2" step="0.001" value="0.02">
         </div>
+        <div class="slider-row">
+          <label>Point Opacity</label>
+          <input type="range" id="opacity-slider" min="0.05" max="1" step="0.05" value="1">
+        </div>
       </div>
+
+      <div class="sidebar-section">
+        <h3>Point Coloring</h3>
+        <select id="color-mode" class="select-input">
+        </select>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>Point Filters</h3>
+        <div class="slider-row">
+          <label>Min Track</label>
+          <input type="range" id="track-filter" min="0" max="50" step="1" value="0">
+        </div>
+        <div class="slider-row">
+          <label>Max Error</label>
+          <input type="range" id="error-filter" min="0" max="10" step="0.1" value="10">
+        </div>
+        <div class="slider-row">
+          <label>Thin</label>
+          <input type="range" id="thin-filter" min="1" max="20" step="1" value="1">
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>Camera Display</h3>
+        <button class="btn" id="camera-mode-btn">Frustums</button>
+      </div>
+
       <div class="sidebar-section btn-row">
         <button class="btn" id="fit-view-btn">Fit View</button>
         <button class="btn" id="reload-btn">Reload</button>
@@ -48,6 +80,7 @@
       <div class="sidebar-section">
         <h3>Cameras</h3>
       </div>
+      <div id="stats-display" class="sidebar-section stats-section"></div>
     </div>
 
     <div id="camera-list"></div>
@@ -57,13 +90,13 @@
     <div id="drop-zone">
       <div class="drop-box">
         <h2>COLMAP Sparse Reconstruction</h2>
-        <p>Drop a folder containing<br><strong>cameras.bin</strong>, <strong>images.bin</strong>, <strong>points3D.bin</strong></p>
+        <p>Drop a folder containing<br><strong>cameras.bin</strong>, <strong>images.bin</strong>, <strong>points3D.bin</strong><br>(or .txt variants)</p>
         <div class="btn-row">
           <button class="btn" id="open-folder-btn">Choose Folder</button>
           <button class="btn" id="open-files-btn">Choose Files</button>
         </div>
         <input type="file" id="folder-input" webkitdirectory multiple style="display:none">
-        <input type="file" id="file-input" multiple accept=".bin" style="display:none">
+        <input type="file" id="file-input" multiple accept=".bin,.txt" style="display:none">
       </div>
     </div>
   </div>
