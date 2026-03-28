@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PoseForge — COLMAP 3D Viewer</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="sidebar">
+    <div id="sidebar-header">
+      <h1><span>Pose</span>Forge</h1>
+      <div id="status" class="status info">Drop a COLMAP sparse folder to begin</div>
+    </div>
+
+    <div id="controls">
+      <div class="sidebar-section">
+        <h3>Visibility</h3>
+        <div class="toggle-row">
+          <label>Point Cloud</label>
+          <input type="checkbox" id="toggle-points" checked>
+        </div>
+        <div class="toggle-row">
+          <label>Cameras</label>
+          <input type="checkbox" id="toggle-cameras" checked>
+        </div>
+        <div class="toggle-row">
+          <label>Trajectory</label>
+          <input type="checkbox" id="toggle-trajectory" checked>
+        </div>
+        <div class="slider-row">
+          <label>Point Size</label>
+          <input type="range" id="point-size" min="0.001" max="0.2" step="0.001" value="0.02">
+        </div>
+      </div>
+      <div class="sidebar-section btn-row">
+        <button class="btn" id="fit-view-btn">Fit View</button>
+        <button class="btn" id="reload-btn">Reload</button>
+      </div>
+      <div class="sidebar-section">
+        <h3>Cameras</h3>
+      </div>
+    </div>
+
+    <div id="camera-list"></div>
+  </div>
+
+  <div id="viewport">
+    <div id="drop-zone">
+      <div class="drop-box">
+        <h2>COLMAP Sparse Reconstruction</h2>
+        <p>Drop a folder containing<br><strong>cameras.bin</strong>, <strong>images.bin</strong>, <strong>points3D.bin</strong></p>
+        <button class="btn" id="open-folder-btn">Choose Folder</button>
+        <input type="file" id="folder-input" webkitdirectory multiple style="display:none">
+        <input type="file" id="file-input" multiple accept=".bin" style="display:none">
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
